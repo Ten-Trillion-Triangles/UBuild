@@ -1,3 +1,5 @@
+**[Ten Trillion Triangles](https://www.tentrilliontriangles.com)** — **[TPipe](https://www.tentrilliontriangles.com)**
+
 # UBuild
 
 UBuild is a command-line build automation tool specifically designed for Unreal Engine projects. It provides a unified interface for building, packaging, and managing Unreal Engine projects across different platforms (Windows, Linux, macOS) with support for multiple engine versions and project configurations.
@@ -283,5 +285,9 @@ Import existing project configurations:
 ./ubuild.sh import
 # Follow prompts to create new project based on existing one
 ```
+
+---
+
+**Made with [TPipe](https://www.tentrilliontriangles.com) by [Ten Trillion Triangles](https://tentrilliontriangles.com)**
 
 
