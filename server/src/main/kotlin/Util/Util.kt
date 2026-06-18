@@ -4,6 +4,7 @@ import Config.BuildString
 import Config.ConfigFile
 import Config.Engine
 import Config.Project
+import Config.UnrealProject
 import Enums.LineEnding
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -384,7 +385,7 @@ fun splitProgramString(programString: String): MutableList<String>
  * @param engine The engine to package. This is a reference and will be updated as such.
  * @return The params are modified by reference so there's no return value here.
  */
-fun generatePackageString(project : Project, engine : Engine)
+fun generatePackageString(project : UnrealProject, engine : Engine)
 {
     /**
      * Loop through each project target. Then loop through each build configuration and generate package strings for each.
@@ -456,7 +457,7 @@ fun generatePackageString(project : Project, engine : Engine)
  * @param engine The engine to build. This is a reference and will be updated as such.
  * @return The params are modified by reference so there's no return value here.
  */
-fun generateBuildStrings(project : Project, engine : Engine)
+fun generateBuildStrings(project : UnrealProject, engine : Engine)
 {
     val targets = project.targetList
     val configs = project.configList
@@ -523,3 +524,28 @@ fun clearScreen()
 
 
 
+
+/**
+ * Type-safe lookup for a [UnrealProject] by alias from a loaded [Engine].
+ *
+ * We need this because the [Config.Project] hierarchy is now a sealed interface and the
+ * [Engine.projects] map stores the sealed base type. Existing UE-only functions would
+ * otherwise have to either re-cast on every read or be wrapped in a `when` block; this
+ * helper centralizes the cast and the null check.
+ *
+ * @param engine The engine whose project map to query. Caller is responsible for ensuring
+ *               the engine is non-null and is the loaded one.
+ * @param alias The ubuild project alias (the key in the [Engine.projects] map).
+ * @return The [UnrealProject] at that alias, or null if the alias is unknown or the
+ *         stored project is not an [UnrealProject] (e.g. a [Config.GradleProject] or
+ *         [Config.ColossalProject] got registered under the same alias by mistake).
+ */
+fun lookupUnrealProject(engine : Engine, alias : String) : UnrealProject?
+{
+    val project = engine.projects[alias] ?: return null
+    if(project !is UnrealProject)
+    {
+        return null
+    }
+    return project
+}

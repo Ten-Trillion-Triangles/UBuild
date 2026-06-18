@@ -2,6 +2,7 @@ package Parser
 
 import Config.Engine
 import Config.Project
+import Config.UnrealProject
 import Globals.env
 import Globals.env.getArgs
 import Globals.env.getDefaultEngine
@@ -153,12 +154,12 @@ fun setProject()
     var projectRoot = "" //Path to the root folder of the project
     var archivePath = "" //Path that UAT will dump packaged game files to. Default to the project root.
     var projectTarget = "" //Name of the Unreal project. EX: CCGToolkit instead of the alias.
-    var project : Project? = engineConfig?.projects?.get(projectAlias) //Warning: This could be null!!
+    var project : UnrealProject? = engineConfig?.projects?.get(projectAlias) as? UnrealProject //Warning: This could be null!!
     val defaultFlagAlias = project?.defaultFlagAlias
 
     if(project == null)
     {
-        project = Project() //Construct new object if not found.
+        project = UnrealProject() //Construct new object if not found.
     }
 
 
@@ -400,7 +401,7 @@ fun generateProjectFiles()
     }
 
 
-    val project = engine.projects[projectAlias]
+    val project = engine.projects[projectAlias] as? UnrealProject
 
     if(project == null)
     {
@@ -482,7 +483,7 @@ fun packageProject()
 
 
 
-    val project = engine.projects[projectAlias]
+    val project = engine.projects[projectAlias] as? UnrealProject
     if(project == null)
     {
         println("Project not found. Please enter a valid project alias.")
@@ -643,7 +644,7 @@ fun buildProject() {
 
 
     //Attempt to resolve project alias from config file.
-    val project = engine.projects[projectAlias]
+    val project = engine.projects[projectAlias] as? UnrealProject
     if(project == null)
     {
         println("Project not found. Please create the project first using set-project")
@@ -787,7 +788,7 @@ fun switchVersion()
 
     if(projectAlias.isNotEmpty())
     {
-        val project = engine.projects[projectAlias]
+        val project = engine.projects[projectAlias] as? UnrealProject
         if(project == null)
         {
             println("Project not found. Please enter a valid project alias.")
@@ -989,7 +990,7 @@ fun buildPlugin()
         }
     }
 
-    val project = engine.projects[projectAlias]
+    val project = engine.projects[projectAlias] as? UnrealProject
 
     if(project == null)
     {
@@ -1237,7 +1238,7 @@ fun import()
     println("Enter the a new project alias.")
     newProjectAlias = readln()
 
-    val oldProject = engine.projects[projectAlias]
+    val oldProject = engine.projects[projectAlias] as? UnrealProject
     if(oldProject == null)
     {
         println("Project not found. Please enter a valid project alias.")
@@ -1282,7 +1283,7 @@ fun import()
     archivePath = archivePath.replace("\\", "/")
 
     //Copy the imported values to the new project alias.
-    val newProject = Project()
+    val newProject = UnrealProject()
     newProject.projectRoot = projectRoot
     newProject.projectTarget = projectTarget
     newProject.archivePath = archivePath
@@ -1374,7 +1375,7 @@ fun path()
     newPath = readln()
 
 
-    val project = engine.projects[alias]
+    val project = engine.projects[alias] as? UnrealProject
 
     if(project == null)
     {
@@ -1447,7 +1448,7 @@ fun zipProject()
 {
     val args = getArgs()
     val engine = getDefaultEngine()
-    var project = Project() //Default until loaded by arguments or cli wizard.
+    var project = UnrealProject() //Default until loaded by arguments or cli wizard.
     var archivePath = "" //Possibly supplied in arguments so declare now just in case.
     var programString = "" //Full command to invoke uat and zip up our build.
 
@@ -1457,7 +1458,7 @@ fun zipProject()
 
         if(engine.projects.contains(args[0]))
         {
-            project = engine.projects[args[0]]!!
+            project = engine.projects[args[0]] as UnrealProject!!
         }
 
         if(args.size >= 2)
@@ -1488,7 +1489,7 @@ fun zipProject()
             return
         }
 
-        project = engine.projects[projectName]!!
+        project = engine.projects[projectName] as UnrealProject!!
 
         println("Enter a an archive path or leave blank to use the project defaults")
         archivePath = readln()
@@ -1665,7 +1666,7 @@ fun removeProject()
         projectName = readln()
     }
 
-    val project = engine.projects[projectName]
+    val project = engine.projects[projectName] as? UnrealProject
 
     if(project == null)
     {
@@ -1674,7 +1675,7 @@ fun removeProject()
 
     else
     {
-        engine.projects[projectName] = Project() //Stupid bug in kotlin surrounding removal of map values.
+        engine.projects[projectName] = UnrealProject() //Stupid bug in kotlin surrounding removal of map values.
         engine.projects.remove(projectName)
         val config = env.getConfig()
         config.engineConfigs[config.loadedConfigKey] = engine

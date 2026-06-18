@@ -2,6 +2,7 @@ package Globals
 
 import Config.ConfigFile
 import Config.Engine
+import Config.Migration
 import Util.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -51,7 +52,7 @@ object env {
             return config
         }
 
-        config = deserialize(File(configPath))
+        config = Config.Migration.migrateIfNeeded(File(configPath))
         return config.copy() //todo: copy() is often too shallow to return nested contents. Possible bug?
     }
 

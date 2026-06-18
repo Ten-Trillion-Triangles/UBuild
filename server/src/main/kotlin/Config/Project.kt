@@ -1,50 +1,26 @@
 package Config
 
 /**
- * Holds project level configurations. Is stored as a mutable map inside
- * an Engine data class.
+ * Sealed hierarchy for every kind of project UBuild can manage.
+ *
+ * We have to be careful here: the v1 on-disk format was a single flat [Config.Project] data
+ * class that mixed Unreal Engine fields into a generic shell. We are intentionally replacing
+ * that with a sealed type so the parser can dispatch on the concrete subtype and so future
+ * engine types (gradle, colossal, anything else) can be added without touching the existing
+ * UE code paths.
+ *
+ * @note for future me: every concrete subtype lives in its own file under [Config] and is
+ * registered in [Config.Migration] so the v1 -> v2 config rewrite knows about it.
  */
 @kotlinx.serialization.Serializable
-data class Project(@kotlinx.serialization.Transient val init : Boolean = true)
+sealed interface Project
 {
-    var projectName = "" // Name of the ubuild project alias.
-    var projectRoot = "" // Root folder of the project.
-    var projectTarget = "" //Name of the unreal engine project. Not to be confused with platform targets like Editor, Game, etc.
-    var uprojectPath = "" // Full path to the uproject file.
-    var archivePath = "" // Path where we want packaged games to be dumped to.
+    /** User-defined alias used to invoke the project from the CLI. */
+    var projectName: String
 
-    var generatePathString = "" //Full path string required to generate the project using GenerateProjectFiles.sh
-    var switchVersionPathString = "" //Full path string required to switch version using UnrealVersionSelector.
+    /** Path to the project root folder on disk. */
+    var projectRoot: String
 
-    var defaultFlagAlias = "basic" //Default UAT flag alias.
-    var defaultTarget = "" //Default build target. Is applied only if the import command is used.
-    var defaultPlatform =  "" //Default platform. Is applied only if the import command is used.
-    var defaultConfig = "" //Default project package configuration. Is applied only if the import command is used.
-
-
-    /**
-     * List of build strings for each possible target followed by engine configuration.
-     * Key is the target, data class is another map holding configuration plus build string.
-     */
-    var buildStringList = mutableMapOf<String, BuildString>()
-
-    /**
-     * List of package strings for each possible target followed by engine configuration.
-     * Key is the target, data class is another map holding configuration plus build string.
-     */
-    var packageList = mutableMapOf<String, BuildString>()
-
-
-    //List of possible build target configurations. Read only and here for convenience.
-    val targetList = listOf("", "Editor", "Server", "Game", "Client")
-
-
-    //List of possible build configurations. Read only and here for convenience.
-    val configList = listOf("Development", "DevelopmentEditor", "Shipping", "Test", "Debug", "DebugGame")
-
-
-    //List of possible platforms supported by unreal engine. Read only and here for convenience.
-    val platformList = listOf("Win64", "Linux", "Android", "IOS", "Mac")
-
-
+    /** Path that build/packaging outputs will be staged or copied to. */
+    var archivePath: String
 }
