@@ -113,8 +113,13 @@ object env {
     fun getDefaultEngine() : Engine
     {
         val engine = config.engineConfigs.getOrDefault(config.loadedConfigKey, Engine())
-        val newEngineString = Json.encodeToString(engine)
-        return Json.decodeFromString(newEngineString)
+        //Round-trip through a Json instance with encodeDefaults = true so non-default
+        //nested objects (e.g. ColossalProject.gradleSubproject) survive the round-trip.
+        //Without this, a freshly-constructed GradleProject() inside a ColossalProject
+        //is treated as the default and silently dropped on deserialize.
+        val roundTripJson = Json { encodeDefaults = true }
+        val newEngineString = roundTripJson.encodeToString(engine)
+        return roundTripJson.decodeFromString(newEngineString)
     }
 
     /**

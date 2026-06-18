@@ -239,7 +239,13 @@ inline fun <reified T> serialize(obj : T, filePath : File)
     val json = Json{ // this returns the JsonBuilder
     prettyPrint = true
     // optional: specify indent
-    prettyPrintIndent = " " }
+    prettyPrintIndent = " "
+    // Serialize default-valued properties too, so non-null inner objects like
+    // ColossalProject.gradleSubproject round-trip correctly. Without this the
+    // gradleSubproject ends up empty after a save/load cycle (the default
+    // GradleProject has empty projectRoot, so the build/package commands route
+    // to the wrong directory).
+    encodeDefaults = true }
 
 
     val output = json.encodeToString(config)
