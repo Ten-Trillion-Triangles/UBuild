@@ -291,3 +291,74 @@ Import existing project configurations:
 **Made with [TPipe](https://www.tentrilliontriangles.com) by [Ten Trillion Triangles](https://tentrilliontriangles.com)**
 
 
+
+
+
+## What's New in v2 (Gradle + Colossal Support)
+
+v2 extends UBuild from an Unreal-only CLI to a multi-engine build automation tool that natively handles **Gradle projects**, **Unreal projects** (existing), and **Colossal 1** (the current TPipe + Autogenesis stack) as a gradle project with engine-specific defaults. **Colossal 2** is registered as a stub that fails loud when run.
+
+### Automatic config migration (v1 → v2)
+
+The on-disk config schema changed in v2: project types are now a sealed hierarchy (`unreal`, `gradle`, `colossal`) and every project entry carries a `type` discriminator. Existing v1 configs are upgraded **transparently** the first time you run v2. The original `~/.ubuild/config.json` is backed up to `~/.ubuild/config.json.v1.bak` and rewritten in the v2 form. **No user action is required** — the migration is fully automatic and idempotent (running it twice on a v2 file is a no-op).
+
+### Gradle commands
+
+```bash
+# Scaffold a new task into an existing build.gradle.kts
+ubuild gradle init-task MyGame myTask build "Run my task" --depends-on compile
+
+# Scaffold a new subproject + register in settings.gradle.kts
+ubuild gradle init-subproject MyGame server kotlinJvm
+
+# Scaffold a brand-new standalone gradle project
+ubuild gradle init-project MyGame /home/cage/proj/MyGame kotlinJvm
+
+# Discover all gradle tasks
+ubuild gradle list-tasks MyGame
+
+# Introspect a gradle project (properties + env + static source parse)
+ubuild gradle info MyGame
+
+# Run a gradle task
+ubuild gradle run MyGame build
+ubuild gradle test MyGame
+ubuild gradle clean MyGame
+```
+
+The top-level `ubuild build MyGame` and `ubuild package MyGame` commands auto-dispatch by project type. For gradle projects, `package` shows a stage-task picker filtered from the project's task list (`install*`, `dist*`, `stage*`, etc.); the user can also pass `--stage-task <name>` to skip the picker.
+
+### Colossal commands
+
+```bash
+# Register a colossal-1 project (TPipe + Autogenesis stack). The detector looks for
+# the Autogenesis settings.gradle.kts fingerprint + a TPipe sibling directory.
+ubuild colossal register /path/to/Autogenesis/Autogenesis --alias Autogenesis
+
+# Register a colossal-2 stub (engine does not exist yet; all commands refuse to run).
+ubuild colossal register /some/path --version colossal-2 --alias FutureEngine
+
+# Show colossal-specific info for a registered project.
+ubuild colossal info Autogenesis
+```
+
+### Code style
+
+All new Kotlin code follows the TTT Kotlin Style Guide (newline-brace for paren-bearing constructs, no space between keyword and `(`, `val name: Type` with no space before colon, KDoc on every top-level public `fun`, no banned identifiers like `tmp` or `result`). A CI style check (`Style/TttStyleTest.kt`) is wired into `./gradlew :server:check` and blocks merges on violations. The check is scoped to v2 source files so pre-existing UE code does not fail the build.
+
+### Project file structure (v2)
+
+- `Config/Project.kt` — sealed `Project` interface
+- `Config/UnrealProject.kt`, `Config/GradleProject.kt`, `Config/ColossalProject.kt` — concrete subtypes
+- `Config/Migration.kt` — v1 → v2 migration with byte-identical backup
+- `Config/ConfigFile.kt` — adds `configVersion: Int = 2` to drive the migration
+- `Gradle/TaskDiscovery.kt` — shells out to `./gradlew tasks --all`, parses output
+- `Gradle/ProjectIntrospector.kt` — static parse of `build.gradle.kts` + env files
+- `Gradle/StageFilter.kt` — picks stage-like gradle tasks for the package picker
+- `Gradle/BuildFilePatcher.kt` — appends a new `tasks.register { ... }` block
+- `Gradle/SubprojectScaffolder.kt` — adds a new subproject + `include(...)` line
+- `Gradle/ProjectScaffolder.kt` — scaffolds a brand-new standalone gradle project
+- `Colossal/ColossalDetector.kt` — fingerprint detector for the colossal-1 stack
+- `Colossal/RunColossalTask.kt` — shared gradle task runner used by colossal projects
+- `Parser/GradleSubcommand.kt`, `Parser/ColossalSubcommand.kt` — subcommand dispatchers
+- `Style/TttStyleTest.kt` — CI style check scoped to v2 source files
