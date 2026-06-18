@@ -348,6 +348,8 @@ fun parseInput()
         "remove-project" -> removeProject() //Delete a project configuration.
         "remove-engine" -> removeEngine() //Delete an engine configuration.
         "list-run" -> listRun() //Print all saved launch string configurations.
+        "gradle" -> dispatchGradleSubcommand() //Route to a gradle subcommand verb. Falls back to wizard if no args.
+        "colossal" -> dispatchColossalSubcommand() //Route to a colossal subcommand verb. Falls back to wizard if no args.
         else -> error = true
     }
 
@@ -422,6 +424,19 @@ fun generateProjectFiles()
  */
 fun packageProject()
 {
+    val argsEarly = getArgs()
+    val engineEarly = getDefaultEngine()
+    var projectAliasEarly = ""
+    if(argsEarly.isNotEmpty())
+    {
+        projectAliasEarly = argsEarly[0]
+    }
+    if(dispatchTopLevelPackageByProjectType(projectAliasEarly))
+    {
+        return
+    }
+
+
     val args = getArgs()
     val engine = getDefaultEngine()
     var projectAlias = "" //Ubuild project alias.
@@ -595,6 +610,22 @@ fun buildProject() {
     val engine = getDefaultEngine()
     val args = getArgs()
     var projectAlias = ""
+    if(args.isNotEmpty())
+    {
+        projectAlias = args[0]
+    }
+    else
+    {
+        println("Enter the name of your project alias.")
+        projectAlias = readln()
+    }
+
+    //v2 dispatch: gradle and colossal projects route to the gradle runner and return.
+    if(dispatchTopLevelBuildByProjectType(projectAlias))
+    {
+        return
+    }
+
     var projectTarget = ""
     var projectConfig = ""
     var projectPlatform = ""
@@ -604,7 +635,6 @@ fun buildProject() {
     {
         if (args.size >= 4)
         {
-            projectAlias = args[0]
             projectTarget = args[1]
             projectConfig = args[2]
             projectPlatform = args[3]
@@ -1754,4 +1784,148 @@ fun listRun()
     {
         println("${i.key}: ${i.value}\n")
     }
+}
+
+
+
+/**
+ * Top-level dispatch for the `build` command. Resolves the alias, looks up the
+ * project, and routes to the right runner based on the sealed [Config.Project] type.
+ * Returns true if the call was handled (a non-UnrealProject dispatch happened); false
+ * means the caller should fall through to the UE-specific code path.
+ *
+ * @since added in v2 alongside the sealed [Config.Project] hierarchy.
+ */
+fun dispatchTopLevelBuildByProjectType(projectAlias : String) : Boolean
+{
+    val engine = getDefaultEngine()
+    val project = engine.projects[projectAlias]
+    if(project == null)
+    {
+        return false
+    }
+    return when(project)
+    {
+        is Config.GradleProject -> {
+            Colossal.runColossalSubprojectTask(java.io.File(project.projectRoot), project.defaultTask)
+            true
+        }
+        is Config.ColossalProject -> {
+            if(!project.isImplemented)
+            {
+                println("Colossal engine version '${project.engineVersion}' is not yet implemented.")
+                true
+            }
+            else
+            {
+                Colossal.runColossalSubprojectTask(
+                    java.io.File(project.gradleSubproject.projectRoot),
+                    project.gradleSubproject.defaultTask
+                )
+                true
+            }
+        }
+        is Config.UnrealProject -> false
+    }
+}
+
+
+
+/**
+ * Top-level dispatch for the `package` command. Mirrors [dispatchTopLevelBuildByProjectType]
+ * but uses the project's `defaultStageTask` (for gradle) and the [Gradle.StageFilter] stage
+ * picker.
+ *
+ * @since added in v2.
+ */
+fun dispatchTopLevelPackageByProjectType(projectAlias : String) : Boolean
+{
+    val engine = getDefaultEngine()
+    val project = engine.projects[projectAlias]
+    if(project == null)
+    {
+        return false
+    }
+    return when(project)
+    {
+        is Config.GradleProject -> {
+            runGradlePackagePicker(project, projectAlias)
+            true
+        }
+        is Config.ColossalProject -> {
+            if(!project.isImplemented)
+            {
+                println("Colossal engine version '${project.engineVersion}' is not yet implemented.")
+                true
+            }
+            else
+            {
+                runGradlePackagePicker(project.gradleSubproject, projectAlias)
+                true
+            }
+        }
+        is Config.UnrealProject -> false
+    }
+}
+
+
+
+/**
+ * Run the gradle stage picker: discover tasks, filter to stage candidates, present a
+ * numbered menu, and run the selected task. The picker honors a `--stage-task <name>`
+ * arg if present.
+ *
+ * @since added in v2.
+ */
+private fun runGradlePackagePicker(project : Config.GradleProject, alias : String)
+{
+    //Honor a --stage-task <name> arg if present.
+    val args = getArgs()
+    var stageTaskOverride : String? = null
+    var i = 0
+    while(i < args.size)
+    {
+        if(args[i] == "--stage-task" && i + 1 < args.size)
+        {
+            stageTaskOverride = args[i + 1]
+            break
+        }
+        i += 1
+    }
+    if(stageTaskOverride != null)
+    {
+        Colossal.runColossalSubprojectTask(java.io.File(project.projectRoot), stageTaskOverride)
+        return
+    }
+
+    val tasks = Gradle.TaskDiscovery.discover(java.io.File(project.projectRoot))
+    val stageTasks = Gradle.StageFilter.filter(tasks)
+    if(stageTasks.isEmpty())
+    {
+        println("No stage-like tasks found. Running the project's default stage task: ${project.defaultStageTask}")
+        Colossal.runColossalSubprojectTask(java.io.File(project.projectRoot), project.defaultStageTask)
+        return
+    }
+    println("Select a stage task for $alias:")
+    for((idx, task) in stageTasks.withIndex())
+    {
+        println("  ${idx + 1}. ${task.name} - ${task.description}")
+    }
+    println("Enter a number, or type a task name directly:")
+    val raw = readln().trim()
+    val task = if(raw.toIntOrNull() != null)
+    {
+        val idx = raw.toInt() - 1
+        if(idx < 0 || idx >= stageTasks.size)
+        {
+            println("Out of range.")
+            return
+        }
+        stageTasks[idx].name
+    }
+    else
+    {
+        raw
+    }
+    Colossal.runColossalSubprojectTask(java.io.File(project.projectRoot), task)
 }

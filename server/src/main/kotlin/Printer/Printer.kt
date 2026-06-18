@@ -267,6 +267,24 @@ fun printHelp() {
             
             list-run: Prints all saved launch strings. Does not contain any arguments. Can be invoked using cli
             wizard or arguments.
+        """.trimIndent(),
+
+        "gradle" to """
+            
+            
+            gradle: Routes to the gradle subcommand tree. See `ubuild gradle help` for the full list.
+            Supports the init-task, init-subproject, init-project, list-tasks, info, run, test, and clean verbs.
+            Abstract Example: ./ubuild.sh gradle <verb> [args]
+            Live Example: ./ubuild.sh gradle list-tasks MyGame
+        """.trimIndent(),
+
+        "colossal" to """
+            
+            
+            colossal: Routes to the colossal subcommand tree. See `ubuild colossal help` for the full list.
+            Supports the register and info verbs. Colossal 2 is registered as a stub that fails loud.
+            Abstract Example: ./ubuild.sh colossal <verb> [args]
+            Live Example: ./ubuild.sh colossal register /path/to/Autogenesis/Autogenesis --alias Autogenesis
         """.trimIndent()
     )
 
@@ -302,4 +320,115 @@ fun printResources()
         |
         |https://github.com/botman99/ue4-unreal-automation-tool
         """.trimMargin())
+}
+
+
+/**
+ * Print the gradle subcommand help.
+ *
+ * Called by `ubuild help` and `ubuild gradle help`. Mirrors the format of [printHelp]
+ * so the per-command entries are consistent.
+ *
+ * @since added in v2 alongside the gradle subcommand tree.
+ */
+fun printGradleHelp()
+{
+    val helpMap = mapOf(
+        "init-task" to """
+            init-task: Add a new gradle task to an existing build.gradle.kts in a registered
+            gradle project. Patches a tasks.register("...") { ... } block at the end of the file.
+            Abstract Example: ubuild gradle init-task <alias> [name] [group] [description] [body]
+            Live Example: ubuild gradle init-task MyProj myTask build "Run my task"
+        """.trimIndent(),
+
+        "init-subproject" to """
+            init-subproject: Create a new subproject directory, write a starter build.gradle.kts,
+            and append include(":<name>") to the project's settings.gradle.kts.
+            Abstract Example: ubuild gradle init-subproject <alias> [name] [language]
+            Live Example: ubuild gradle init-subproject MyProj server kotlinJvm
+        """.trimIndent(),
+
+        "init-project" to """
+            init-project: Scaffold a brand-new standalone gradle project (wrapper included) and
+            register it under the supplied alias.
+            Abstract Example: ubuild gradle init-project <alias> [path] [language]
+            Live Example: ubuild gradle init-project MyGame /home/cage/proj/MyGame kotlinJvm
+        """.trimIndent(),
+
+        "list-tasks" to """
+            list-tasks: Run ./gradlew tasks --all for the project's gradle wrapper and print
+            the grouped task list.
+            Abstract Example: ubuild gradle list-tasks <alias>
+        """.trimIndent(),
+
+        "info" to """
+            info: Introspect a gradle project. Shows gradle project properties, system properties,
+            contents of any .env / gradle.properties files, and a static source parse of
+            build.gradle.kts for val foo: Type by project(...) declarations and System.getenv
+            references.
+            Abstract Example: ubuild gradle info <alias>
+        """.trimIndent(),
+
+        "run" to """
+            run: Run the gradle wrapper with the supplied task (or the project's default task).
+            Abstract Example: ubuild gradle run <alias> [task]
+            Live Example: ubuild gradle run MyProj build
+        """.trimIndent(),
+
+        "test" to """
+            test: Run the gradle test task for the project.
+            Abstract Example: ubuild gradle test <alias>
+        """.trimIndent(),
+
+        "clean" to """
+            clean: Run the gradle clean task for the project.
+            Abstract Example: ubuild gradle clean <alias>
+        """.trimIndent()
+    )
+
+    println("Gradle Commands")
+    println("---------------")
+    for((_, text) in helpMap)
+    {
+        println(text)
+        println()
+    }
+}
+
+
+
+/**
+ * Print the colossal subcommand help.
+ *
+ * Called by `ubuild help` and `ubuild colossal help`. Mirrors the format of [printHelp]
+ * so the per-command entries are consistent.
+ *
+ * @since added in v2 alongside the colossal subcommand tree.
+ */
+fun printColossalHelp()
+{
+    val helpMap = mapOf(
+        "register" to """
+            register: Register a colossal project. For colossal-1 this runs the detector against
+            the supplied root and writes a ColossalProject with isImplemented=true. For
+            colossal-2 the call writes a stub with isImplemented=false and refuses to run.
+            Abstract Example: ubuild colossal register [path] [--version colossal-1|colossal-2]
+            Live Example: ubuild colossal register /home/cage/Desktop/Workspaces/Autogenesis/Autogenesis
+        """.trimIndent(),
+
+        "info" to """
+            info: Show colossal-specific info about a registered project: engine version, the
+            underlying gradle subproject, and (for colossal-1) the list of detected TPipe
+            modules.
+            Abstract Example: ubuild colossal info <alias>
+        """.trimIndent()
+    )
+
+    println("Colossal Commands")
+    println("-----------------")
+    for((_, text) in helpMap)
+    {
+        println(text)
+        println()
+    }
 }
