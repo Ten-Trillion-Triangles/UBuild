@@ -101,7 +101,7 @@ private fun resolveRunnableGradleProject(alias : String) : Pair<File, GradleProj
 fun gradleInitTask()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty())
     {
         alias = args[0]
@@ -116,11 +116,11 @@ fun gradleInitTask()
     val resolved = resolveRunnableGradleProject(alias) ?: return
     val (root, _) = resolved
 
-    val taskName : String
-    val group : String
-    val description : String
-    val dependsOnRaw : String
-    val body : String
+    val taskName: String
+    val group: String
+    val description: String
+    val dependsOnRaw: String
+    val body: String
 
     if(args.size >= 5)
     {
@@ -181,7 +181,7 @@ fun gradleInitTask()
 fun gradleInitSubproject()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the parent project alias."); alias = readln() }
     if(alias.isBlank()) return
@@ -189,8 +189,8 @@ fun gradleInitSubproject()
     val resolved = resolveRunnableGradleProject(alias) ?: return
     val (root, _) = resolved
 
-    val subprojectName : String
-    val languageRaw : String
+    val subprojectName: String
+    val languageRaw: String
     if(args.size >= 3)
     {
         subprojectName = args[1]
@@ -236,15 +236,15 @@ fun gradleInitSubproject()
 fun gradleInitProject()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias to register under."); alias = readln() }
     if(alias.isBlank()) return
 
-    val projectPath : String
-    val languageRaw : String
-    val group : String
-    val version : String
+    val projectPath: String
+    val languageRaw: String
+    val group: String
+    val version: String
     if(args.size >= 5)
     {
         projectPath = args[1]
@@ -293,7 +293,7 @@ fun gradleInitProject()
 fun gradleListTasks()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias."); alias = readln() }
     if(alias.isBlank()) return
@@ -335,7 +335,7 @@ fun gradleListTasks()
 fun gradleInfo()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias."); alias = readln() }
     if(alias.isBlank()) return
@@ -408,7 +408,7 @@ fun gradleInfo()
 fun gradleRun()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias."); alias = readln() }
     if(alias.isBlank()) return
@@ -416,7 +416,7 @@ fun gradleRun()
     val resolved = resolveRunnableGradleProject(alias) ?: return
     val (root, project) = resolved
 
-    val task : String
+    val task: String
     if(args.size >= 2)
     {
         task = args[1]
@@ -441,7 +441,7 @@ fun gradleRun()
 fun gradleTest()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias."); alias = readln() }
     if(alias.isBlank()) return
@@ -460,7 +460,7 @@ fun gradleTest()
 fun gradleClean()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the project alias."); alias = readln() }
     if(alias.isBlank()) return

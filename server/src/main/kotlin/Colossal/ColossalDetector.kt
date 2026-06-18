@@ -61,9 +61,9 @@ object ColossalDetector
      *                                that exist as siblings of [root].
      */
     data class Detection(
-        val isColossal1 : Boolean,
-        val matchedSettingsMarkers : List<String>,
-        val matchedTpipeSiblings : List<String>,
+        val isColossal1: Boolean,
+        val matchedSettingsMarkers: List<String>,
+        val matchedTpipeSiblings: List<String>,
     )
 
 

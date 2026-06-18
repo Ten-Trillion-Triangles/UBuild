@@ -14,9 +14,9 @@ import java.util.concurrent.TimeUnit
  * @since added in v2.
  */
 data class GradleTaskDescriptor(
-    val name : String,
-    val group : String,
-    val description : String,
+    val name: String,
+    val group: String,
+    val description: String,
 )
 
 

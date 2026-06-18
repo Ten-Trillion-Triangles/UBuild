@@ -59,9 +59,9 @@ fun colossalRegister()
     val args = getArgs()
 
     //Parse arguments. We support `register <path> [--version <v>]` and the wizard path.
-    var path : String? = null
-    var version : String = "colossal-1"
-    var alias : String? = null
+    var path: String? = null
+    var version: String = "colossal-1"
+    var alias: String? = null
     var i = 0
     while(i < args.size)
     {
@@ -201,7 +201,7 @@ private fun buildColossal2Stub(alias : String, path : String) : ColossalProject
 fun colossalInfo()
 {
     val args = getArgs()
-    val alias : String
+    val alias: String
     if(args.isNotEmpty()) alias = args[0]
     else { println("Enter the colossal project alias."); alias = readln() }
     if(alias.isBlank()) return

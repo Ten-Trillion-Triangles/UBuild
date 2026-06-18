@@ -37,9 +37,9 @@ object ProjectIntrospector
      *                          and any `.env` files in the project root.
      */
     data class Introspection(
-        val projectProperties : List<ProjectProperty> = emptyList(),
-        val environmentVariables : List<String> = emptyList(),
-        val envFileEntries : List<EnvEntry> = emptyList(),
+        val projectProperties: List<ProjectProperty> = emptyList(),
+        val environmentVariables: List<String> = emptyList(),
+        val envFileEntries: List<EnvEntry> = emptyList(),
     )
 
 
@@ -48,9 +48,9 @@ object ProjectIntrospector
      * `build.gradle.kts`.
      */
     data class ProjectProperty(
-        val name : String,
-        val type : String,
-        val defaultValue : String,
+        val name: String,
+        val type: String,
+        val defaultValue: String,
     )
 
 
@@ -58,9 +58,9 @@ object ProjectIntrospector
      * A single `KEY=value` entry parsed from an env file.
      */
     data class EnvEntry(
-        val key : String,
-        val value : String,
-        val source : String,
+        val key: String,
+        val value: String,
+        val source: String,
     )
 
 

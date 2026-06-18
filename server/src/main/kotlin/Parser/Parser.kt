@@ -154,7 +154,7 @@ fun setProject()
     var projectRoot = "" //Path to the root folder of the project
     var archivePath = "" //Path that UAT will dump packaged game files to. Default to the project root.
     var projectTarget = "" //Name of the Unreal project. EX: CCGToolkit instead of the alias.
-    var project : UnrealProject? = engineConfig?.projects?.get(projectAlias) as? UnrealProject //Warning: This could be null!!
+    var project: UnrealProject? = engineConfig?.projects?.get(projectAlias) as? UnrealProject //Warning: This could be null!!
     val defaultFlagAlias = project?.defaultFlagAlias
 
     if(project == null)
@@ -443,7 +443,7 @@ fun packageProject()
     var projectTarget = "" //Unreal engine project target. EX CCGToolkit, CCGToolkitServer, CCGToolkitEditor etc.
     var projectConfig = "" //Unreal engine project build configuration. EX Development, Shipping, DevelopmentEditor etc.
     var projectPlatform = "" //Unreal engine target platform/OS. EX Win64, Linux etc
-    var flagAliasValue : String? = "" //The value of the flag alias command.
+    var flagAliasValue: String? = "" //The value of the flag alias command.
 
     if(args.isNotEmpty())
     {
@@ -1488,7 +1488,7 @@ fun zipProject()
 
         if(engine.projects.contains(args[0]))
         {
-            project = engine.projects[args[0]] as UnrealProject!!
+            project = engine.projects[args[0]] as UnrealProject
         }
 
         if(args.size >= 2)
@@ -1519,7 +1519,7 @@ fun zipProject()
             return
         }
 
-        project = engine.projects[projectName] as UnrealProject!!
+        project = engine.projects[projectName] as UnrealProject
 
         println("Enter a an archive path or leave blank to use the project defaults")
         archivePath = readln()
@@ -1881,7 +1881,7 @@ private fun runGradlePackagePicker(project : Config.GradleProject, alias : Strin
 {
     //Honor a --stage-task <name> arg if present.
     val args = getArgs()
-    var stageTaskOverride : String? = null
+    var stageTaskOverride: String? = null
     var i = 0
     while(i < args.size)
     {
