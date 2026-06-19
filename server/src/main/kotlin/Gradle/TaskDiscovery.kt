@@ -51,19 +51,71 @@ object TaskDiscovery
         val wrapper = locateWrapper(projectRoot)
             ?: return emptyList()
 
-        val process = ProcessBuilder(wrapper.absolutePath, "tasks", "--all", "--console=plain")
+        // `--no-daemon` keeps each `list-tasks` call self-contained: the
+        // wrapper forks a fresh JVM, runs the build, and exits. Without it,
+        // the wrapper tries to connect to a daemon left over from a prior
+        // build (possibly in another concurrent run on the same machine),
+        // which can be in `DaemonStateCoordinator.awaitStop` and silently
+        // swallow new build requests, hanging the wrapper forever.
+        //
+        // `redirectInput(DEVNULL)` prevents gradle from inheriting the
+        // parent's stdin and blocking on a read of it (no TTY in CI).
+        //
+        // `redirectErrorStream(true)` merges stderr into stdout so a single
+        // reader thread below can drain both into one buffer.
+        val process = ProcessBuilder(
+                wrapper.absolutePath,
+                "tasks", "--all", "--console=plain",
+                "--no-daemon",
+            )
             .directory(projectRoot)
             .redirectErrorStream(true)
+            .redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
             .start()
 
-        val finished = process.waitFor(60, TimeUnit.SECONDS)
+        // Drain the merged stdout/stderr pipe on a dedicated reader thread
+        // while the process runs. With `redirectErrorStream(true)` the
+        // two streams share a single ~64KB pipe; gradle's
+        // `ThrottlingOutputEventListener` blocks on a monitor while
+        // rendering output, so if the parent JVM doesn't keep draining the
+        // pipe the buffer fills up, gradle blocks writing more output, and
+        // the build deadlocks. Reading on a separate thread avoids the
+        // deadlock; `waitFor` then returns when the process exits and we
+        // join the reader to collect any final output.
+        val outputBuilder = StringBuilder()
+        val readerThread = Thread({
+            try
+            {
+                process.inputStream.bufferedReader().forEachLine { line ->
+                    synchronized(outputBuilder) { outputBuilder.appendLine(line) }
+                }
+            }
+            catch(_: Exception) { /* pipe closed, that's fine */ }
+        }, "gradle-task-discovery-reader").apply { isDaemon = true; start() }
+
+        // 10 minutes is a deliberately generous budget: on a fresh
+        // `GRADLE_USER_HOME` the wrapper has to download the gradle
+        // distribution (~130MB) which alone takes 60-120s, and the
+        // multi-project configuration phase + cold-start JIT can add
+        // another 30-60s on top.
+        val finished = process.waitFor(10, TimeUnit.MINUTES)
         if(!finished)
         {
             process.destroyForcibly()
+            readerThread.interrupt()
+            readerThread.join(5_000)
             return emptyList()
         }
 
-        val rawOutput = process.inputStream.bufferedReader().readText()
+        // Give the reader a moment to drain anything still in the pipe
+        // after the process exited. If it doesn't finish in 5s, take
+        // what we have.
+        readerThread.join(5_000)
+        if(readerThread.isAlive)
+        {
+            readerThread.interrupt()
+        }
+        val rawOutput = synchronized(outputBuilder) { outputBuilder.toString() }
         return parseTasksOutput(rawOutput)
     }
 
