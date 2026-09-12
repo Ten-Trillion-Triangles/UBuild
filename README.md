@@ -362,3 +362,7 @@ All new Kotlin code follows the TTT Kotlin Style Guide (newline-brace for paren-
 - `Colossal/RunColossalTask.kt` — shared gradle task runner used by colossal projects
 - `Parser/GradleSubcommand.kt`, `Parser/ColossalSubcommand.kt` — subcommand dispatchers
 - `Style/TttStyleTest.kt` — CI style check scoped to v2 source files
+
+## License
+
+UBuild is licensed under the [MIT License](LICENSE). Third-party components, including the Gradle wrapper, remain under their respective licenses.
