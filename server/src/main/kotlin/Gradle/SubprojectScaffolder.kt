@@ -50,7 +50,7 @@ object SubprojectScaffolder
         subDir.mkdirs()
 
         val buildFile = File(subDir, "build.gradle.kts")
-        val template = loadTemplate(language.templateName)
+        val template = loadTemplate(language.templateName, language)
         buildFile.writeText(template)
 
         appendInclude(parentRoot, subprojectName)
@@ -114,28 +114,57 @@ object SubprojectScaffolder
     }
 
 
-    private fun loadTemplate(resourceName : String) : String
+    private fun loadTemplate(resourceName : String, language: Language) : String
     {
         val stream = SubprojectScaffolder::class.java.classLoader
             .getResourceAsStream("templates/gradle/$resourceName")
-            ?: return defaultTemplate()
+            ?: return defaultTemplate(language)
         return stream.bufferedReader().use { it.readText() }
     }
 
 
-    private fun defaultTemplate() : String
+    private fun defaultTemplate(language: Language) : String
     {
-        //Fallback if a resource template is missing: a minimal valid kotlin-jvm
-        //build file. Better than throwing so the scaffolder always succeeds.
-        return """
-            //Scaffolded by ubuild gradle init-subproject.
-            plugins {
-                kotlin("jvm")
-            }
+        //Keep the fallback faithful to the selected language when templates are not
+        //packaged (for example, when running from a development checkout).
+        return when(language)
+        {
+            Language.KOTLIN_JVM -> """
+                //Scaffolded by ubuild gradle init-subproject.
+                plugins {
+                    kotlin("jvm")
+                }
 
-            dependencies {
-                //Add subproject dependencies here.
-            }
-        """.trimIndent() + "\n"
+                dependencies {
+                    //Add subproject dependencies here.
+                }
+            """.trimIndent() + "\n"
+            Language.KOTLIN_MULTIPLATFORM -> """
+                //Scaffolded by ubuild gradle init-subproject.
+                plugins {
+                    kotlin("multiplatform")
+                }
+
+                kotlin {
+                    jvm()
+                }
+
+                sourceSets {
+                    commonMain.dependencies {
+                        //Add shared subproject dependencies here.
+                    }
+                }
+            """.trimIndent() + "\n"
+            Language.JAVA -> """
+                //Scaffolded by ubuild gradle init-subproject.
+                plugins {
+                    java
+                }
+
+                dependencies {
+                    //Add subproject dependencies here.
+                }
+            """.trimIndent() + "\n"
+        }
     }
 }

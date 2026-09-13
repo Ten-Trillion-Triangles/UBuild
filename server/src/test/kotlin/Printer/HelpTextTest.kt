@@ -1,33 +1,47 @@
 package Printer
 
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import kotlin.test.Test
-import kotlin.test.assertTrue
+import kotlin.test.assertContains
+import kotlin.test.assertFalse
 
-/**
- * Tests for the help text surfaced by `ubuild help`, `ubuild gradle help`, and
- * `ubuild colossal help`. The plan requires every new command to appear in help
- * with the same multi-line indented format as the existing entries.
- *
- * @since added in v2.
- */
+/** Tests that the published help output names each supported subcommand. */
 class HelpTextTest
 {
     @Test
-    fun gradleHelpMentionsAllNewCommands()
+    fun gradleHelpMentionsAllSupportedCommands()
     {
-        //We can't easily capture stdout in this test, so we just check that the
-        //printGradleHelp function doesn't throw and that the help map contains
-        //every required command.
-        printGradleHelp()
-        //If we got here without exception, the help is structurally valid.
-        assertTrue(true)
+        val text = captureStandardOutput(::printGradleHelp)
+        for(command in listOf("init-task", "init-subproject", "init-project", "list-tasks", "info", "run", "test", "clean"))
+        {
+            assertContains(text, "$command:")
+        }
+        assertFalse(text.isBlank())
     }
 
-
     @Test
-    fun colossalHelpMentionsAllNewCommands()
+    fun colossalHelpMentionsRegistrationAndInfoCommands()
     {
-        printColossalHelp()
-        assertTrue(true)
+        val text = captureStandardOutput(::printColossalHelp)
+        assertContains(text, "register:")
+        assertContains(text, "info:")
+        assertFalse(text.isBlank())
+    }
+
+    private fun captureStandardOutput(block: () -> Unit): String
+    {
+        val original = System.out
+        val output = ByteArrayOutputStream()
+        try
+        {
+            System.setOut(PrintStream(output, true, Charsets.UTF_8))
+            block()
+        }
+        finally
+        {
+            System.setOut(original)
+        }
+        return output.toString(Charsets.UTF_8)
     }
 }

@@ -72,9 +72,11 @@ fun setEngine()
     {
         engineRoot = args[0] //Set engine has only one argument so it would always just be 0.
     }
-
-    println("Enter the path to the engine's root folder. (The root folder contains Setup.sh and GenerateProjectFiles.sh)")
-    engineRoot = readln()
+    else
+    {
+        println("Enter the path to the engine's root folder. (The root folder contains Setup.sh and GenerateProjectFiles.sh)")
+        engineRoot = readln()
+    }
 
     if(engineRoot.isNullOrEmpty())
     {
@@ -653,16 +655,17 @@ fun buildProject() {
 
     }
 
-    println("Enter the name of your project alias.")
-    projectAlias = readln()
-    println("Enter the name of your project target or leave blank to default to the project's default target" +
-            "EX: Editor, Server, Game, Client etc.")
-    projectTarget = readln()
-    println("Enter the name of your build configuration or leave blank to default to Development" +
-            "EX: Develpopment, Shipping, DevelopmentEditor, Debug, DebugGame etc.")
-    projectConfig = readln()
-    println("Enter any additional flags or leave blank. EX: -rebuild -clean -cleanonly -fastrebuild -fastclean -lightrebuild -lightclean")
-    extraFlags = readln()
+    else
+    {
+        println("Enter the name of your project target or leave blank to default to the project's default target" +
+                "EX: Editor, Server, Game, Client etc.")
+        projectTarget = readln()
+        println("Enter the name of your build configuration or leave blank to default to Development" +
+                "EX: Develpopment, Shipping, DevelopmentEditor, Debug, DebugGame etc.")
+        projectConfig = readln()
+        println("Enter any additional flags or leave blank. EX: -rebuild -clean -cleanonly -fastrebuild -fastclean -lightrebuild -lightclean")
+        extraFlags = readln()
+    }
 
 
 

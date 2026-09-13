@@ -52,15 +52,67 @@ UBuild is built as a multi-module Kotlin project using Ktor framework:
 | `./gradlew :server:run` | Run the application in development mode |
 | `./gradlew test` | Run all tests |
 
-### Docker build and test
+### Docker build, verification, and CLI
 
-The Docker image uses JDK 21 and runs `./gradlew --no-daemon clean build`, compiling all modules and running the test suite. Build it with:
+The Docker image is a JDK 21 development and verification environment. It pins the base image, verifies the Gradle 8.5 distribution and dependencies, runs the tests, and builds the executable `server-all.jar` during the image build. It is not a production deployment image and does not include Unreal Engine. The host needs Docker, but no local JDK or Gradle installation. The ignore rules retain hidden files such as task prompts and verifier files in the image's `/workspace` checkout.
+
+Build it from the repository root:
 
 ```bash
-docker build --tag ubuild-build .
+docker build --pull --no-cache \
+  --build-arg UBUILD_UID="$(id -u)" \
+  --build-arg UBUILD_GID="$(id -g)" \
+  --tag ubuild:verify .
 ```
 
-The first build needs network access to download the Gradle distribution and dependencies.
+The UID/GID build arguments let the container write build outputs into the mounted checkout as the current host user.
+
+The first build needs network access to download the pinned JDK image, Gradle distribution, and verified build dependencies. Those Gradle downloads are retained in the image so the UBuild test suite can run offline afterward:
+
+```bash
+docker run --rm --entrypoint /workspace/gradlew ubuild:verify --offline --no-daemon test
+```
+
+When build dependencies change, regenerate `gradle/verification-metadata.xml` with `./gradlew --write-verification-metadata sha256 --no-daemon clean test :server:buildFatJar`, review the checksum changes, and rerun the strict Docker build. The image build rejects artifacts without an approved checksum.
+
+Run a one-shot CLI command or open the interactive wizard. The named volume persists UBuild's `~/.ubuild/config.json`; the mounted directory is the project working directory visible to UBuild:
+
+```bash
+docker volume create ubuild-config
+docker run --rm ubuild:verify help
+docker run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  --volume ubuild-config:/home/ubuild/.ubuild \
+  --volume "$PWD:/workspace/project" \
+  --workdir /workspace/project \
+  ubuild:verify
+```
+
+To run the Gradle application task from a mounted UBuild checkout instead of the prebuilt JAR, override the entrypoint with that checkout's wrapper:
+
+```bash
+docker run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  --env JAVA_TOOL_OPTIONS=-Duser.home=/home/ubuild \
+  --volume ubuild-config:/home/ubuild/.ubuild \
+  --volume "$PWD:/workspace/project" \
+  --workdir /workspace/project \
+  --entrypoint /workspace/project/gradlew \
+  ubuild:verify --no-daemon :server:run --args=help
+```
+
+The same mounted checkout can run its tests with the image's cached dependencies by overriding the entrypoint with its wrapper:
+
+```bash
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/workspace/project" \
+  --workdir /workspace/project \
+  --entrypoint /workspace/project/gradlew \
+  ubuild:verify --offline --no-daemon test
+```
+
+Gradle/Colossal commands can launch builds for mounted projects without Unreal Engine; a new target project may still need network access the first time its own wrapper distribution or dependencies are resolved.
 
 ### Creating Distribution
 ```bash

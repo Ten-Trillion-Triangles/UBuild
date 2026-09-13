@@ -50,14 +50,14 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.rpc.krpc.ktor.server.RPC
+import kotlinx.rpc.krpc.ktor.server.Krpc
 import kotlinx.rpc.krpc.ktor.server.rpc
 import kotlinx.rpc.krpc.serialization.json.*
 import kotlinx.serialization.Serializable
 import org.slf4j.event.*
 
 fun Application.configureFrameworks() {
-    install(RPC)
+    install(Krpc)
     routing {
         rpc("/api") {
             rpcConfig {

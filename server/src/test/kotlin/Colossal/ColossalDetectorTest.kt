@@ -122,4 +122,35 @@ class ColossalDetectorTest
             "Markers without TPipe sibling should not classify as colossal-1")
         assertEquals(2, detection.matchedSettingsMarkers.size)
     }
+
+
+    @Test
+    fun oneSettingsMarkerIsInsufficientEvenWhenTpipeIsPresent()
+    {
+        File(autoGenRoot, "settings.gradle").writeText("include(':accelbyteSdk')\n")
+
+        val detection = ColossalDetector.detect(autoGenRoot)
+
+        assertFalse(detection.isColossal1)
+        assertEquals(listOf("accelbyteSdk"), detection.matchedSettingsMarkers)
+        assertEquals(listOf("TPipe"), detection.matchedTpipeSiblings)
+    }
+
+
+    @Test
+    fun detectsExactlyTwoMarkersWhenTpipeIsAtTheWorkspaceAncestor()
+    {
+        val nestedRoot = File(tempRoot, "workspace/Autogenesis")
+        nestedRoot.mkdirs()
+        File(tempRoot, "TPipe").mkdirs()
+        File(nestedRoot, "settings.gradle.kts").writeText(
+            "include(\":kvisionApp\")\ninclude(\":jukebox\")\n",
+        )
+
+        val detection = ColossalDetector.detect(nestedRoot)
+
+        assertTrue(detection.isColossal1)
+        assertEquals(listOf("kvisionApp", "jukebox"), detection.matchedSettingsMarkers)
+        assertEquals(listOf("TPipe"), detection.matchedTpipeSiblings)
+    }
 }

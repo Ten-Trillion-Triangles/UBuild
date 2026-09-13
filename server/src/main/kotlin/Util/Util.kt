@@ -19,6 +19,7 @@ import java.io.IOException
  * if they do not comply.
  */
 fun getHomeFolder(): File {
+    HomeFolderOverride.folder?.let { return it }
     val os = System.getProperty("os.name")
     return if (os.contains("Windows")) {
         File(System.getenv("USERPROFILE"))
@@ -129,9 +130,9 @@ fun deleteDir(path : String)
  */
 fun executeBashCommand(command : String) : Int
 {
-    val process = ProcessBuilder(*command.split("\\s+".toRegex()).toTypedArray())
+    val process = ProcessRuntime.start(ProcessBuilder(*command.split("\\s+".toRegex()).toTypedArray())
         .inheritIO()
-        .start()
+    )
     process.waitFor()
     return process.exitValue()
 }
@@ -281,7 +282,7 @@ fun launchProgram(path : MutableList<String>, retryCount : Int = 0)
     builder.redirectError(ProcessBuilder.Redirect.INHERIT)
     builder.redirectInput(ProcessBuilder.Redirect.INHERIT)
     //println(builder.command())
-    val process = builder.start()
+    val process = ProcessRuntime.start(builder)
     process.waitFor()
 
     //Allow for retries to bypass stubborn ispc bugs introduced in 5.5 and beyond.
@@ -373,14 +374,9 @@ fun getOs() : String
  */
 fun splitProgramString(programString: String): MutableList<String>
 {
-    val first = programString.split(Regex("(?<!\\\\)\\s+")).toSet().toCollection(ArrayList()).toMutableList()
-    val newList = mutableListOf<String>()
-    for(i in first)
-    {
-        newList.add(i)
-    }
-
-    return newList
+    return programString.split(Regex("(?<!\\\\)\\s+"))
+        .filter { it.isNotEmpty() }
+        .toMutableList()
 
 }
 

@@ -57,11 +57,14 @@ import kotlinx.serialization.Serializable
 import org.slf4j.event.*
 
 fun Application.configureSockets() {
-    install(WebSockets) {
-        pingPeriod = 15.seconds
-        timeout = 15.seconds
-        maxFrameSize = Long.MAX_VALUE
-        masking = false
+    if(pluginOrNull(WebSockets) == null)
+    {
+        install(WebSockets) {
+            pingPeriod = 15.seconds
+            timeout = 15.seconds
+            maxFrameSize = Long.MAX_VALUE
+            masking = false
+        }
     }
     routing {
         webSocket("/ws") { // websocketSession

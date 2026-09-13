@@ -29,9 +29,11 @@ fun main(args: Array<String>) {
 
 fun Application.module() {
     configureAdministration()
+    // The kotlinx RPC server plugin installs WebSockets for its transport. Install
+    // that before the standalone echo route so configureSockets can reuse it.
+    configureFrameworks()
     configureSockets()
     configureSerialization()
-    configureFrameworks()
     configureMonitoring()
     configureHTTP()
     configureRouting()

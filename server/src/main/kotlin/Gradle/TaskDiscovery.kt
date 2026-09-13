@@ -1,7 +1,9 @@
 package Gradle
 
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import Util.ProcessRuntime
 
 /**
  * Single gradle task as discovered by [TaskDiscovery].
@@ -58,20 +60,27 @@ object TaskDiscovery
         // which can be in `DaemonStateCoordinator.awaitStop` and silently
         // swallow new build requests, hanging the wrapper forever.
         //
-        // `redirectInput(DEVNULL)` prevents gradle from inheriting the
-        // parent's stdin and blocking on a read of it (no TTY in CI).
+        // Close the wrapper's piped stdin immediately so it cannot inherit the
+        // parent's console or block waiting for interactive input.
         //
         // `redirectErrorStream(true)` merges stderr into stdout so a single
         // reader thread below can drain both into one buffer.
-        val process = ProcessBuilder(
+        val process = try
+        {
+            ProcessRuntime.start(ProcessBuilder(
                 wrapper.absolutePath,
                 "tasks", "--all", "--console=plain",
                 "--no-daemon",
             )
             .directory(projectRoot)
             .redirectErrorStream(true)
-            .redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
-            .start()
+            .redirectInput(ProcessBuilder.Redirect.PIPE))
+        }
+        catch(_: IOException)
+        {
+            return emptyList()
+        }
+        process.outputStream.close()
 
         // Drain the merged stdout/stderr pipe on a dedicated reader thread
         // while the process runs. With `redirectErrorStream(true)` the
@@ -98,7 +107,7 @@ object TaskDiscovery
         // distribution (~130MB) which alone takes 60-120s, and the
         // multi-project configuration phase + cold-start JIT can add
         // another 30-60s on top.
-        val finished = process.waitFor(10, TimeUnit.MINUTES)
+        val finished = process.waitFor(ProcessRuntime.taskDiscoveryTimeoutMillis, TimeUnit.MILLISECONDS)
         if(!finished)
         {
             process.destroyForcibly()
@@ -114,6 +123,10 @@ object TaskDiscovery
         if(readerThread.isAlive)
         {
             readerThread.interrupt()
+        }
+        if(process.exitValue() != 0)
+        {
+            return emptyList()
         }
         val rawOutput = synchronized(outputBuilder) { outputBuilder.toString() }
         return parseTasksOutput(rawOutput)

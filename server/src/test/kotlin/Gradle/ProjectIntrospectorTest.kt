@@ -109,4 +109,35 @@ class ProjectIntrospectorTest
         val intro = ProjectIntrospector.introspect(tempRoot)
         assertEquals(listOf("GROOVY_KEY"), intro.environmentVariables)
     }
+
+
+    @Test
+    fun prefersKotlinBuildFileAndCollectsEnvFilesInStableNameOrder()
+    {
+        File(tempRoot, "build.gradle.kts").writeText(
+            """
+            val mode: kotlin.String? by project("local")
+            val first = System.getenv("SHARED_KEY")
+            val second = System.getenv("SHARED_KEY")
+            """.trimIndent()
+        )
+        File(tempRoot, "build.gradle").writeText("def ignored = System.getenv(\"GROOVY_ONLY\")")
+        File(tempRoot, ".env").writeText("SHARED_KEY=from-env\n")
+        File(tempRoot, ".env.local").writeText("LOCAL_ONLY=from-local\n")
+        File(tempRoot, "gradle.properties").writeText("SHARED_KEY=from-properties\n")
+
+        val intro = ProjectIntrospector.introspect(tempRoot)
+
+        assertEquals(listOf("SHARED_KEY"), intro.environmentVariables)
+        assertEquals("mode", intro.projectProperties.single().name)
+        assertEquals("local", intro.projectProperties.single().defaultValue)
+        assertEquals(
+            listOf(".env", ".env.local", "gradle.properties"),
+            intro.envFileEntries.map { it.source },
+        )
+        assertEquals(
+            listOf("from-env", "from-local", "from-properties"),
+            intro.envFileEntries.filter { it.key == "SHARED_KEY" || it.key == "LOCAL_ONLY" }.map { it.value },
+        )
+    }
 }

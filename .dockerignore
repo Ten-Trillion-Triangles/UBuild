@@ -1,6 +1,8 @@
 .git
 .gradle
 **/.gradle
+.kotlin
+**/.kotlin
 .idea
 **/build
 *.log

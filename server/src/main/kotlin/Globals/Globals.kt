@@ -49,11 +49,14 @@ object env {
             config = ConfigFile()
             generateBuildFlagDefaults() //Generate default build flags if this is a fresh config file.
             serialize(config, File(configPath))
-            return config
+            return getConfig()
         }
 
         config = Config.Migration.migrateIfNeeded(File(configPath))
-        return config.copy() //todo: copy() is often too shallow to return nested contents. Possible bug?
+        //ConfigFile's mutable data properties are declared in the class body, not its
+        //primary constructor. data class copy() only copies constructor properties and
+        //would silently return an otherwise empty config here.
+        return getConfig()
     }
 
 
@@ -151,6 +154,13 @@ object env {
         args = newArgs.toMutableList()
     }
 
+    /** Reset the process-wide state between isolated tests without touching user files. */
+    internal fun resetForTesting()
+    {
+        config = ConfigFile()
+        args = mutableListOf()
+    }
+
     fun swapEngineConfig(newConfig : String)
     {
         var targetConfig = newConfig
@@ -192,7 +202,7 @@ object env {
 
             for(i in args)
             {
-                flags = "$i "
+                flags += "$i "
             }
         }
 

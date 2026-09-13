@@ -1,80 +1,73 @@
 package Parser
 
-import Gradle.BuildFilePatcher
+import Config.GradleProject
+import Globals.env
+import TestSupport.UBuildTestEnvironment
+import Util.CliIO
 import java.io.File
 import java.nio.file.Files
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-/**
- * Tests that the gradle scaffolder helpers produce identical output whether the user
- * supplied arguments or used the wizard. We don't drive the full gradleInitTask
- * function (which reads from stdin via [readln]) because that would require a stdin
- * mock; instead we test the [BuildFilePatcher] that gradleInitTask delegates to,
- * since that is where the actual file mutation happens.
- *
- * @since added in v2.
- */
+/** Verifies that the actual argument and wizard paths create the same task block. */
 class CliArgsParityTest
 {
-    private lateinit var tempDir : File
-    private lateinit var buildFile : File
+    private lateinit var testEnvironment: UBuildTestEnvironment
+    private lateinit var tempDir: File
+    private lateinit var argsBuildFile: File
+    private lateinit var wizardBuildFile: File
 
-
-    @kotlin.test.BeforeTest
+    @BeforeTest
     fun setUp()
     {
+        testEnvironment = UBuildTestEnvironment()
         tempDir = Files.createTempDirectory("cli-args-parity-test").toFile()
-        buildFile = File(tempDir, "build.gradle.kts")
-        buildFile.writeText(
-            """
-            //Existing gradle file.
-            plugins {
-                kotlin("jvm")
-            }
-            """.trimIndent()
-        )
+        argsBuildFile = newGradleProject("args-project")
+        wizardBuildFile = newGradleProject("wizard-project")
+
+        val engine = env.getDefaultEngine()
+        engine.projects["args"] = GradleProject().apply {
+            projectName = "args"
+            projectRoot = argsBuildFile.parentFile.absolutePath
+        }
+        engine.projects["wizard"] = GradleProject().apply {
+            projectName = "wizard"
+            projectRoot = wizardBuildFile.parentFile.absolutePath
+        }
+        env.updateEngineConfig(engine)
     }
 
-
-    @kotlin.test.AfterTest
+    @AfterTest
     fun tearDown()
     {
         tempDir.deleteRecursively()
+        testEnvironment.close()
     }
 
-
     @Test
-    fun patcherProducesSameBlockForRenderedTask()
+    fun argumentAndInteractiveModesProduceEquivalentTaskBlocks()
     {
-        val argsBlock = BuildFilePatcher.renderTaskBlock(
-            taskName = "myTask",
-            group = "build",
-            description = "Test",
-            dependsOn = listOf("compile"),
-            body = "println(\"hi\")",
-        )
-        val wizardBlock = BuildFilePatcher.renderTaskBlock(
-            taskName = "myTask",
-            group = "build",
-            description = "Test",
-            dependsOn = listOf("compile"),
-            body = "println(\"hi\")",
-        )
-        assertEquals(argsBlock, wizardBlock)
+        env.setArgs(arrayOf("args", "myTask", "build", "Run my task", "compile,test", "println(\"done\")"))
+        CliIO.withAdapters({ error("Argument mode must not prompt") }, {}, ::gradleInitTask)
+
+        val wizardAnswers = listOf(
+            "wizard", "myTask", "build", "Run my task", "compile,test", "println(\"done\")",
+        ).iterator()
+        env.setArgs(emptyArray())
+        CliIO.withAdapters({ wizardAnswers.next() }, {}, ::gradleInitTask)
+
+        assertEquals(argsBuildFile.readText(), wizardBuildFile.readText())
+        assertEquals(false, wizardAnswers.hasNext())
     }
 
-
-    @Test
-    fun applyBlockAppendsToFileEnd()
+    private fun newGradleProject(name: String): File
     {
-        val block = BuildFilePatcher.renderTaskBlock(taskName = "myTask")
-        val updated = BuildFilePatcher.applyBlock(buildFile, block)
-        assertTrue(updated.contains("tasks.register(\"myTask\")"))
-        assertTrue(updated.endsWith("}\n"))
-        //Original content is preserved.
-        assertTrue(updated.contains("plugins {"))
-        assertTrue(updated.contains("kotlin(\"jvm\")"))
+        val root = File(tempDir, name).apply { mkdirs() }
+        File(root, "settings.gradle.kts").writeText("rootProject.name = \"$name\"\n")
+        val buildFile = File(root, "build.gradle.kts")
+        buildFile.writeText("plugins { }\n")
+        return buildFile
     }
 }
