@@ -1,0 +1,7 @@
+.git
+.gradle
+**/.gradle
+.idea
+**/build
+*.log
+.ubuild.sh.kate-swp

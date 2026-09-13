@@ -27,9 +27,9 @@ UBuild is built as a multi-module Kotlin project using Ktor framework:
 ## Requirements
 
 ### System Requirements
-- **Java 24** or higher (JVM target)
-- **Kotlin 2.2.0** or higher
-- **Gradle 8.x** for building from source
+- **JDK 21** to run the Gradle 8.5 wrapper
+- **Gradle 8.5**, supplied by the checked-in Gradle Wrapper; no system Gradle installation is required
+- **Kotlin Gradle plugin 2.1.0**, resolved automatically by the build
 
 ### Unreal Engine Requirements
 - Unreal Engine installation (any version 4.x or 5.x)
@@ -39,9 +39,9 @@ UBuild is built as a multi-module Kotlin project using Ktor framework:
 ## Building
 
 ### Prerequisites
-1. Install Java 24 or higher
+1. Install JDK 21
 2. Ensure `JAVA_HOME` is set correctly
-3. Clone the repository
+3. Clone the repository; the checked-in wrapper downloads Gradle 8.5 on first use
 
 ### Build Commands
 
@@ -51,6 +51,16 @@ UBuild is built as a multi-module Kotlin project using Ktor framework:
 | `./gradlew :server:buildFatJar` | Build executable JAR with all dependencies |
 | `./gradlew :server:run` | Run the application in development mode |
 | `./gradlew test` | Run all tests |
+
+### Docker build and test
+
+The Docker image uses JDK 21 and runs `./gradlew --no-daemon clean build`, compiling all modules and running the test suite. Build it with:
+
+```bash
+docker build --tag ubuild-build .
+```
+
+The first build needs network access to download the Gradle distribution and dependencies.
 
 ### Creating Distribution
 ```bash
