@@ -15,4 +15,16 @@ subprojects {
 
     group = "com.TTT"
     version = "0.0.1"
+
+    // Keep bytecode compatible with the documented JDK 21 runtime, even when
+    // Gradle itself is launched on a newer JDK.
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        }
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(21)
+    }
 }
